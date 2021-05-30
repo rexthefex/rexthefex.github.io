@@ -4,12 +4,13 @@ import axios from "axios";
 import BTable from "react-bootstrap/Table";
 import { useLocalStorage } from "./useLocalStorage";
 import dayjs from "dayjs";
+import { useSticky } from "react-table-sticky";
 
 function App() {
   const [items, setItems] = useLocalStorage("items", []);
   const columns = useMemo(() => {
     let res = [
-      { Header: "Symbol", accessor: "symbol", className: 'sticky' },
+      { Header: "Symbol", accessor: "symbol", sticky: 'left' },
     ];
     items?.forEach((el, idx) => {
       if (idx !== 0) {
@@ -119,7 +120,8 @@ function App() {
       }
 
     },
-    useSortBy
+    useSortBy,
+    useSticky
   );
 
   useEffect(() => {
@@ -144,8 +146,8 @@ function App() {
   }, []);
 
   return (
-    <BTable striped bordered hover size="sm" {...getTableProps()}>
-      <thead>
+    <BTable striped bordered hover size="sm" {...getTableProps()} className={"table sticky"}>
+      <thead className={"header"}>
         {headerGroups.map((headerGroup) => (
           <tr {...headerGroup.getHeaderGroupProps()}>
             {headerGroup.headers.map((column) => (
@@ -178,8 +180,7 @@ function App() {
           return (
             <tr {...row.getRowProps()}>
               {row.cells.map((cell, idx) => (
-                <td style={idx === 0 ? {position: 'sticky', left: 0, top: 0, backgroundColor: 'white'} : null}
-                    {...cell.getCellProps()}>{cell.render("Cell")}</td>
+                <td {...cell.getCellProps()}>{cell.render("Cell")}</td>
               ))}
             </tr>
           );
