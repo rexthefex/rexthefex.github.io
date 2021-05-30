@@ -1,10 +1,72 @@
 import { useTable, useSortBy } from "react-table";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import BTable from "react-bootstrap/Table";
 import { useLocalStorage } from "./useLocalStorage";
 import dayjs from "dayjs";
 import { useSticky } from "react-table-sticky";
+import './App.css';
+
+axios.defaults.baseURL = "https://api.binance.com";
+
+const Timer = ({minutes, setItems}) => {
+  const [seconds, setSeconds] = useState(minutes * 60);
+  const setItemsRef = useRef(setItems);
+  setItemsRef.current = setItems;
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSeconds(current => current - 1)
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetch = useCallback(async () => {
+    // console.log('fetch')
+    // return true;
+    return axios.get("/api/v3/ticker/24hr").then((r) =>
+      setItemsRef.current((current) => {
+        const newItems = [...current];
+        if (current.length > 10) {
+          newItems.splice(9, current.length - 9);
+        }
+        newItems.unshift({
+          timestamp: dayjs().unix(),
+          data: r.data.map((el) => ({
+            symbol: el.symbol,
+            volume: el.quoteVolume,
+            lastPrice: el.lastPrice,
+          })),
+        });
+        return newItems;
+      }),
+    );
+  }, []);
+
+  useEffect(() => {
+    if (seconds === 0) {
+      fetch().then(() => setSeconds(minutes * 60));
+    }
+  }, [fetch, minutes, seconds]);
+
+  useEffect(() => {
+    fetch().then(() => setSeconds(minutes * 60));
+  }, [fetch, minutes]);
+
+  return <div>{seconds}</div>;
+}
+
+const Refresher = ({setItems}) => {
+  const [minutes, setMinutes] = useLocalStorage('interval', 1);
+
+  return <div className={'refresh-header'}>
+    <div>Refresh: {[1, 2, 5, 10, 15, 30, 60].map(
+      el => <a href={"#"} key={el} onClick={() => setMinutes(el)}
+               style={el === minutes ? { fontWeight: "bold" } : {}}>{el}</a>)}
+  </div>
+    <Timer minutes={minutes} setItems={setItems} />
+</div>
+}
 
 function App() {
   const [items, setItems] = useLocalStorage("items", []);
@@ -98,7 +160,7 @@ function App() {
     [items]
   );
 
-  console.log({ columns, data, filteredUSDTCoins, filteredItems, items });
+  // console.log({ columns, data, filteredUSDTCoins, filteredItems, items });
 
   const {
     getTableProps,
@@ -124,28 +186,9 @@ function App() {
     useSticky
   );
 
-  useEffect(() => {
-    axios.defaults.baseURL = "https://api.binance.com";
-    axios.get("/api/v3/ticker/24hr").then((r) =>
-      setItems((current) => {
-        const newItems = [...current];
-        if (current.length > 10) {
-          newItems.splice(0, current.length - 9);
-        }
-        newItems.unshift({
-          timestamp: dayjs().unix(),
-          data: r.data.map((el) => ({
-            symbol: el.symbol,
-            volume: el.quoteVolume,
-            lastPrice: el.lastPrice,
-          })),
-        });
-        return newItems;
-      })
-    );
-  }, []);
-
   return (
+    <>
+      <Refresher setItems={setItems} />
     <BTable striped bordered hover size="sm" {...getTableProps()} className={"table sticky"}>
       <thead className={"header"}>
         {headerGroups.map((headerGroup) => (
@@ -187,6 +230,8 @@ function App() {
         })}
       </tbody>
     </BTable>
+    </>
+
   );
 }
 

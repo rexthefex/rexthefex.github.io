@@ -1,0 +1,11 @@
+.refresh-header {
+    margin: 10px;
+    font-size: 18px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.refresh-header a {
+    color: black;
+    margin-right: 10px;
+}
