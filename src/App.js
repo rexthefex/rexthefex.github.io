@@ -58,12 +58,16 @@ const Timer = ({minutes, setItems}) => {
 
 const Refresher = ({setItems}) => {
   const [minutes, setMinutes] = useLocalStorage('interval', 1);
+  const [inputMinutes, setInputMinutes] = useState(1);
 
   return <div className={'refresh-header'}>
-    <div>Refresh: {[1, 2, 5, 10, 15, 30, 60].map(
-      el => <a href={"#"} key={el} onClick={() => setMinutes(el)}
-               style={el === minutes ? { fontWeight: "bold" } : {}}>{el}</a>)}
-  </div>
+    <div>Minutes: <input value={inputMinutes}
+              onChange={event => setInputMinutes(parseInt(event.target.value))}
+              type={"number"}/>
+      <button onClick={() => setMinutes(inputMinutes)}
+              disabled={isNaN(inputMinutes)}>Save
+      </button>
+    </div>
     <Timer minutes={minutes} setItems={setItems} />
 </div>
 }
