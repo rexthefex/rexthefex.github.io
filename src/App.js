@@ -56,7 +56,7 @@ const Timer = ({minutes, setItems}) => {
   return <div>{seconds}</div>;
 }
 
-const Refresher = ({setItems}) => {
+const Refresher = ({setItems, children}) => {
   const [minutes, setMinutes] = useLocalStorage('interval', 1);
   const [inputMinutes, setInputMinutes] = useState(1);
 
@@ -67,6 +67,7 @@ const Refresher = ({setItems}) => {
       <button onClick={() => setMinutes(inputMinutes)}
               disabled={isNaN(inputMinutes)}>Save
       </button>
+      {children}
     </div>
     <Timer minutes={minutes} setItems={setItems} />
 </div>
@@ -74,6 +75,7 @@ const Refresher = ({setItems}) => {
 
 function App() {
   const [items, setItems] = useLocalStorage("items", []);
+  const [hideLowVolume, setHideLowVolume] = useLocalStorage('hide_low_volume', false);
   const columns = useMemo(() => {
     let res = [
       { Header: "Symbol", accessor: "symbol", sticky: 'left' },
@@ -127,11 +129,12 @@ function App() {
   const filteredItems = useMemo(() => {
     const data = items?.[items.length - 1]?.data;
     return data?.filter(
-      (el) =>
-        el.symbol.includes("BTC") &&
-        filteredUSDTCoins.some((coin) => el.symbol.includes(coin.symbol))
+      (el) => {
+        const coin = filteredUSDTCoins.find((coin) => el.symbol.includes(coin.symbol));
+        return el.symbol.endsWith("BTC") && !!coin && el.volume > (hideLowVolume ? 100 : 0); //btc
+      }
     ) || [];
-  }, [filteredUSDTCoins, items]);
+  }, [filteredUSDTCoins, hideLowVolume, items]);
 
   const data = useMemo(
     () =>
@@ -161,7 +164,7 @@ function App() {
         });
         return data;
       }) || [],
-    [items]
+    [filteredItems, items]
   );
 
   // console.log({ columns, data, filteredUSDTCoins, filteredItems, items });
@@ -192,15 +195,24 @@ function App() {
 
   return (
     <>
-      <Refresher setItems={setItems} />
+      <Refresher setItems={setItems}>
+        <label className="low-volume-checkbox">
+          <input
+            type="checkbox"
+            checked={hideLowVolume}
+            onChange={() => setHideLowVolume(!hideLowVolume)}
+          />
+          Hide low volume
+        </label>
+      </Refresher>
     <BTable striped bordered hover size="sm" {...getTableProps()} className={"table sticky"}>
       <thead className={"header"}>
         {headerGroups.map((headerGroup) => (
           <tr {...headerGroup.getHeaderGroupProps()}>
             {headerGroup.headers.map((column) => (
-              <th>
+              <th {...column.getHeaderProps(column.getSortByToggleProps())}>
                 <div style={{ display: "flex", justifyContent: "space-between"}}>
-                  <div {...column.getHeaderProps(column.getSortByToggleProps())}>
+                  <div >
                     {column.render("Header")}
                     {column.isSorted ? (column.isSortedDesc ? "🔽" : "🔼") : ""}
                   </div>

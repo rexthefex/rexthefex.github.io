@@ -9,3 +9,8 @@
     color: black;
     margin-right: 10px;
 }
+
+.low-volume-checkbox input {
+    margin-left: 20px;
+    margin-right: 8px;
+}
